@@ -202,7 +202,7 @@ module.exports = (app) => {
         failureFlash: true}
     ));
 
-    app.get('/logout', isLoggedIn, (request, response, next) => {
+    app.get('/logout', notLoggedIn, (request, response, next) => {
         request.logout();
         request.flash('success_msg', "You are logged out");
         response.redirect('/');
@@ -241,8 +241,14 @@ module.exports = (app) => {
                      ProgramId: program
                  }).then(
                     (user)=>{
-                       passport.authenticate("local-signIn", {failureRedirect:"/signup", successRedirect: "/user/profile"})(request, response) 
-                       request.flash('success_msg', 'You are registered and can now login');
+                        if(user.type === 'user'){
+                            passport.authenticate("local-signIn", {failureRedirect:"/", successRedirect: "/user/profile"})(request, response)
+                            request.flash('success_msg', 'You are registered and can now login');
+                       }
+                        if(user.type === 'trainer'){
+                            passport.authenticate("local-signIn", {failureRedirect:"/", successRedirect: "/admin/clients"})(request, response)
+                            request.flash('success_msg', 'You are registered and can now login');
+                       }
                      }
              )}
      });
@@ -252,17 +258,35 @@ module.exports = (app) => {
 // ******************************************************************************
 
       passport.use('local-signIn', new LocalStrategy.Strategy(
-        (username, password, done) => {
-        db.User.findOne({ where: { 'username': username }}).then((user) => {
-            if(!user){return done(null, false, {message:'Unknown User'})}
-            let hashedPW = bcrypt.hashSync(password, user.salt) 
-            if(user.password === hashedPW){
-              return  done(null, user);
-            }
-            return done(null, false , { message: 'Incorrect password.'})
-          })
-        }
-      ));
+       (username, password, done) => {
+       db.User.findOne({ where: { 'username': username }}).then((user) => {
+           if(!user){return done(null, false, {message:'Unknown User'})}
+           let hashedPW = bcrypt.hashSync(password, user.salt)
+           if(user.password === hashedPW){
+             return  done(null, user);
+           }
+           return done(null, false , { message: 'Incorrect password.'})
+         })
+       }
+     ));
+
+   function isUser(request, response, next){
+       db.User.findOne({where: {'username': request.body.username}}).then((user)=>{
+           if(user.type === 'user'){
+               return next();
+           }
+           response.send(401, 'Unauthorized');
+       })       
+    }  
+
+   function isTrainer(request, response, next){
+          db.User.findOne({where: {'username': request.body.username}}).then((user)=>{
+           if(user.type === 'trainer'){
+               return next();
+           }
+           response.send(401, 'Unauthorized');
+       })  
+    }
 
       // function that allowes rout access only to logged in users /// 
       function isLoggedIn(request, response, next){
