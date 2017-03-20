@@ -77,7 +77,10 @@ The largest roadblock was the implementation of authentication, but in the end w
 
 ## Snapshots
 
+The Landing Page
 ![alt text]( ./public/assets/images/trainbot_main_page.png 'Website Landing Page')
 
+Personal Trainer's Program List
+![alt text]( ./public/assets/images/trainbot_programs.png 'Website Landing Page')
 
 
